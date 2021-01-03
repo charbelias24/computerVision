@@ -1,0 +1,5 @@
+
+For running the first 7 videos and getting results in terminal : (Adaptive Background substraction + something-- the something depends on line 107-108 of complete.py, just uncomment one and comment the other)
+python complete.py -v "AVDIAR_All/Seq01-1P-S0M1/Video/Seq01-1P-S0M1_CAM1.mp4,AVDIAR_All/Seq02-1P-S0M1/Video/Seq02-1P-S0M1_CAM1.mp4,AVDIAR_All/Seq03-1P-S0M1/Video/Seq03-1P-S0M1_CAM1.mp4,AVDIAR_All/Seq04-1P-S0M1/Video/Seq04-1P-S0M1_CAM1.mp4,AVDIAR_All/Seq05-2P-S1M0/Video/Seq05-2P-S1M0_CAM1.mp4,AVDIAR_All/Seq06-2P-S1M0/Video/Seq06-2P-S1M0_CAM1.mp4,AVDIAR_All/Seq07-2P-S1M0/Video/Seq07-2P-S1M0_CAM1.mp4"
+
+python complete.py -v "AVDIAR_All/Seq02-1P-S0M1/Video/Seq02-1P-S0M1_CAM1.mp4"
