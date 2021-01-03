@@ -194,6 +194,10 @@ def get_list_IOU(positive_windows,dict_faces):
             if r is False:
                 list_IOU_rec = [i for i in list_IOU_rec if i != 0]
             list_IOU[frame_nb]+=list_IOU_rec
+    else:
+        if (len(faces_in_image) != 0):
+            for truth_rec in faces_in_image:
+                unmatched_faces[frame_nb].append(truth_rec)
     list_IOU[frame_nb] = list(dict.fromkeys(list_IOU[frame_nb]))
     unmatched_faces[frame_nb] = list(dict.fromkeys(unmatched_faces[frame_nb]))
   return list_IOU, unmatched_faces
@@ -201,8 +205,6 @@ def get_list_IOU(positive_windows,dict_faces):
 
 def check_negatives(unmatched_faces):
     return sum([len(unmatched_faces[x]) for x in unmatched_faces])
-
-
 
 def check_positives(list_IOU):
   false_positives = 0
