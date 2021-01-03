@@ -49,15 +49,16 @@ cnn.compile(loss="binary_crossentropy", optimizer = opt, metrics=['accuracy',
                                                                          keras.metrics.AUC()
 ])
 precision_list = []
-for video in args["video"].split(','):
+recall_list = []
+for i,video in enumerate(args["video"].split(',')):
   print('#######################')
-  print("starting video "+video)
+  print("starting video "+str(i+1))
   vs = cv2.VideoCapture(video)
   path = Path(video)
   gt_file = path.parent.parent
   gt_file = str(gt_file) + '/GroundTruth/face_bb.txt'
   last_frame = count_frames(video) - 1
-  print("Last frame of video = "+str(last_frame))
+  #print("Last frame of video = "+str(last_frame))
   dict_faces, positive_windows = lib.parse_ground_truth(gt_file,last_frame)
   firstFrame = None
   subtractor = cv2.createBackgroundSubtractorMOG2(history = 50, varThreshold= 200, detectShadows = True)
@@ -69,9 +70,12 @@ for video in args["video"].split(','):
       frame = vs.read()
       frame = frame[1]  
       if frame is None:
-          precision_video = lib.compute_precision(positive_windows,dict_faces)
-          print("The precision of the method in the video: "+str(video)+ " is " +str(precision_video))
+          list_IOU, unmatched_faces = lib.get_list_IOU(positive_windows,dict_faces)
+          precision_video, recall_video = lib.compute_metrics(list_IOU, unmatched_faces)
+          print("The precision of the method in the video: "+str(i)+ " is " +str(precision_video))
+          print("The recall of the method in the video: "+str(i)+" is "+str(recall_video))
           precision_list.append(precision_video)
+          recall_list.append(precision_video)
           break
       frame_nb+=1
       gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)

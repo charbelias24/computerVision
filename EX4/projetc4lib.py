@@ -165,24 +165,28 @@ def parse_ground_truth(gt_file, last_frame):
     fd.close()
     return dict_faces, positive_windows
 
-def compute_precision(positive_windows, dict_faces):
-  FP , TP = check_positives(positive_windows, dict_faces)
-  return (TP)/(TP+FP)
+def compute_metrics(list_IOU, unmatched_faces):
+    FP , TP = check_positives(list_IOU)
+    FN = check_negatives(unmatched_faces)
+    return (TP)/(TP+FP), (TP)/(TP+FN)
 
-def check_positives(positive_windows, dict_faces):
-  false_positives = 0
+def get_list_IOU(positive_windows,dict_faces):
   list_IOU = {}
-  total_positives = 0
-  true_positives = 0
+  unmatched_faces = {}
   for frame_nb,window_list in positive_windows.items():
     list_IOU[frame_nb] = []
+    unmatched_faces[frame_nb] = []
     faces_in_image = dict_faces[frame_nb]
     if len(window_list) > 0:
         for predicted_rec in window_list:
-            total_positives+=1
             list_IOU_rec = []
             for truth_rec in faces_in_image:
                 IOU = calculate_IOU(predicted_rec,truth_rec)
+                if IOU < 0.3:
+                    unmatched_faces[frame_nb].append(truth_rec)
+                else:
+                    if truth_rec in unmatched_faces[frame_nb]:
+                        unmatched_faces[frame_nb].remove(truth_rec)
                 list_IOU_rec.append(IOU)
             r = True
             for IOU in list_IOU_rec:
@@ -190,19 +194,23 @@ def check_positives(positive_windows, dict_faces):
             if r is False:
                 list_IOU_rec = [i for i in list_IOU_rec if i != 0]
             list_IOU[frame_nb]+=list_IOU_rec
-    else:
-        if (len(dict_faces[frame_nb]) != len(window_list)):
-            for i in range(len(dict_faces[frame_nb])):
-                list_IOU[frame_nb].append(0.01)
     list_IOU[frame_nb] = list(dict.fromkeys(list_IOU[frame_nb]))
-  #print(list_IOU)
+    unmatched_faces[frame_nb] = list(dict.fromkeys(unmatched_faces[frame_nb]))
+  return list_IOU, unmatched_faces
+
+
+def check_negatives(unmatched_faces):
+    return sum([len(unmatched_faces[x]) for x in unmatched_faces])
+
+
+
+def check_positives(list_IOU):
+  false_positives = 0
+  true_positives = 0
   for frame_nb,IOU_list in list_IOU.items():
       for IOU in IOU_list:
           if IOU > 0.3:
               true_positives +=1
-          else:
+          elif(IOU != -1):
               false_positives+=1
-#   print('false positives = '+str(false_positives))
-#   print('true positives direct = '+str(true_positives))
-#   print('tru positives calc = '+str(total_positives-false_positives))
   return false_positives, true_positives
