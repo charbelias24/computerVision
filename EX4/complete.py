@@ -50,6 +50,7 @@ cnn.compile(loss="binary_crossentropy", optimizer = opt, metrics=['accuracy',
 ])
 precision_list = []
 recall_list = []
+avrg_fps_all_videos = []
 for i,video in enumerate(args["video"].split(',')):
   print('#######################')
   print("starting video "+str(i+1))
@@ -63,7 +64,10 @@ for i,video in enumerate(args["video"].split(',')):
   firstFrame = None
   subtractor = cv2.createBackgroundSubtractorMOG2(history = 50, varThreshold= 200, detectShadows = True)
   width_avg_list = []
+  fps_video = []
   frame_nb = -1
+  prev_frame_time = 0
+  new_frame_time = 0
   while True:
   # grab the frame from the threaded video stream and resize it
     # to have a maximum width of 400 pixels
@@ -72,10 +76,13 @@ for i,video in enumerate(args["video"].split(',')):
       if frame is None:
           list_IOU, unmatched_faces = lib.get_list_IOU(positive_windows,dict_faces)
           precision_video, recall_video = lib.compute_metrics(list_IOU, unmatched_faces)
+          avrg_fps_video = int(sum(fps_video)/len(fps_video))
           print("The precision of the method in the video: "+str(i)+ " is " +str(precision_video))
           print("The recall of the method in the video: "+str(i)+" is "+str(recall_video))
+          print("The average FPS of the video "+str(i)+ " was "+ str(avrg_fps_video))
           precision_list.append(precision_video)
-          recall_list.append(precision_video)
+          recall_list.append(recall_video)
+          avrg_fps_all_videos.append(avrg_fps_video)
           break
       frame_nb+=1
       gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
@@ -108,14 +115,24 @@ for i,video in enumerate(args["video"].split(',')):
           ROI = Rectangle(x,y,x+w,y+h)
           if (ROI.x2 == 720) & (ROI.y2 == 450):
             continue
-          #clone, positive_windows_list = lib.predict_pretrained_ROI(frame, ROI, netPreMade)
-          clone, total_windows, positive_windows_list = lib.predict_sliding_window_cnn(frame, ROI,cnn,average)
+          clone, positive_windows_list = lib.predict_pretrained_ROI(frame, ROI, netPreMade)
+          #clone, total_windows, positive_windows_list = lib.predict_sliding_window_cnn(frame, ROI,cnn,average)
           positive_windows[frame_nb]+= positive_windows_list
+          new_frame_time = time.time()
+          #calculate fps:
+          fps = 1/(new_frame_time-prev_frame_time)
+          prev_frame_time = new_frame_time 
+          fps = int(fps)
+          fps_video.append(fps)
           if (clone is not None):
             clone = lib.draw_truth(clone,dict_faces[frame_nb])
-            cv2.imshow("frame",clone if not None else frame)
+            cv2.putText(clone, 'FPS '+str(fps), (2, 25),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)  
+            cv2.imshow("frame",clone )
           else:
             frame = lib.draw_truth(frame,dict_faces[frame_nb])
+            cv2.putText(frame, 'FPS '+str(fps), (2, 25),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2) 
             cv2.imshow("frame",frame)
           key = cv2.waitKey(1) & 0xFF
         # if the `q` key is pressed, break from the lop
@@ -123,4 +140,6 @@ for i,video in enumerate(args["video"].split(',')):
               break
   vs.stop() if args.get("video", None) is None else vs.release()
   cv2.destroyAllWindows()
-print("the total precision is = "+str(sum(precision_list)/len(precision_list)))
+print("the average precision is = "+str(sum(precision_list)/len(precision_list)))
+print("the average recall is = "+str(sum(recall_list)/len(recall_list)))
+print("the average FPS is = "+str(int(sum(avrg_fps_all_videos)/len(avrg_fps_all_videos))))
