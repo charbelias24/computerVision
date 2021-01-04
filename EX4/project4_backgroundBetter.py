@@ -37,7 +37,7 @@ while True:
 	# to have a maximum width of 400 pixels
     frame = vs.read()
     frame = frame[1] if args.get("video",False) else frame 
-    text = "Unoccupied"
+    text = ""
     if frame is None:
         break
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
@@ -60,8 +60,8 @@ while True:
   ## show results:
         (x, y, w, h) = cv2.boundingRect(c)
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        text = "Occupied"
-    cv2.putText(frame, "Room Status: {}".format(text), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        text = ""
+    #cv2.putText(frame, "Room Status: {}".format(text), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     #(x, y, w, h) = cv2.boundingRect(cnts)
     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
     cv2.imshow("Thresh", thresh)

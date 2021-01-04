@@ -37,11 +37,11 @@ args = vars(ap.parse_args())
 Rectangle = namedtuple('Rectangle', ['x1', 'y1', 'x2', 'y2'])
 netPreMade = cv2.dnn.readNetFromCaffe('./deploy.prototxt','./res10_300x300_ssd_iter_140000.caffemodel')
 ## cnn:
-json_file = open('./cnn_WIDER.json','r')
+json_file = open('./cnn_WIDER_AVDIAR.json','r')
 loaded_cnn_json = json_file.read()
 json_file.close()
 cnn = keras.models.model_from_json(loaded_cnn_json)
-cnn.load_weights('./cnn_WIDER.h5')
+cnn.load_weights('./cnn_WIDER_AVDIAR.h5')
 opt = keras.optimizers.Adam(lr=1e-3,decay=1e-3/25)
 cnn.compile(loss="binary_crossentropy", optimizer = opt, metrics=['accuracy',
                                                                          keras.metrics.Precision(),
@@ -51,6 +51,7 @@ cnn.compile(loss="binary_crossentropy", optimizer = opt, metrics=['accuracy',
 precision_list = []
 recall_list = []
 avrg_fps_all_videos = []
+f1_list = []
 for i,video in enumerate(args["video"].split(',')):
   print('#######################')
   print("starting video "+str(i+1))
@@ -77,11 +78,14 @@ for i,video in enumerate(args["video"].split(',')):
           list_IOU, unmatched_faces = lib.get_list_IOU(positive_windows,dict_faces)
           precision_video, recall_video = lib.compute_metrics(list_IOU, unmatched_faces)
           avrg_fps_video = int(sum(fps_video)/len(fps_video))
-          print("The precision of the method in the video: "+str(i)+ " is " +str(precision_video))
-          print("The recall of the method in the video: "+str(i)+" is "+str(recall_video))
-          print("The average FPS of the video "+str(i)+ " was "+ str(avrg_fps_video))
+          f1_score = 2 * ((precision_video*recall_video)/(precision_video+recall_video))
+          print("The precision of the method in the video: "+str(i+1)+ " is " +str(precision_video))
+          print("The recall of the method in the video: "+str(i+1)+" is "+str(recall_video))
+          print("The F1 score of the method in the video "+str(i+1)+" is "+str(f1_score))
+          print("The average FPS of the video "+str(i+1)+ " was "+ str(avrg_fps_video))
           precision_list.append(precision_video)
           recall_list.append(recall_video)
+          f1_list.append(f1_score)
           avrg_fps_all_videos.append(avrg_fps_video)
           break
       frame_nb+=1
@@ -115,8 +119,8 @@ for i,video in enumerate(args["video"].split(',')):
           ROI = Rectangle(x,y,x+w,y+h)
           if (ROI.x2 == 720) & (ROI.y2 == 450):
             continue
-          clone, positive_windows_list = lib.predict_pretrained_ROI(frame, ROI, netPreMade)
-          #clone, total_windows, positive_windows_list = lib.predict_sliding_window_cnn(frame, ROI,cnn,average)
+          #clone, positive_windows_list = lib.predict_pretrained_ROI(frame, ROI, netPreMade)
+          clone, total_windows, positive_windows_list = lib.predict_sliding_window_cnn(frame, ROI,cnn,average)
           positive_windows[frame_nb]+= positive_windows_list
           new_frame_time = time.time()
           #calculate fps:
@@ -124,6 +128,7 @@ for i,video in enumerate(args["video"].split(',')):
           prev_frame_time = new_frame_time 
           fps = int(fps)
           fps_video.append(fps)
+          key = cv2.waitKey(1) & 0xFF
           if (clone is not None):
             clone = lib.draw_truth(clone,dict_faces[frame_nb])
             cv2.putText(clone, 'FPS '+str(fps), (2, 25),
@@ -134,7 +139,6 @@ for i,video in enumerate(args["video"].split(',')):
             cv2.putText(frame, 'FPS '+str(fps), (2, 25),
             cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2) 
             cv2.imshow("frame",frame)
-          key = cv2.waitKey(1) & 0xFF
         # if the `q` key is pressed, break from the lop
           if key == ord("q"):
               break
@@ -142,4 +146,5 @@ for i,video in enumerate(args["video"].split(',')):
   cv2.destroyAllWindows()
 print("the average precision is = "+str(sum(precision_list)/len(precision_list)))
 print("the average recall is = "+str(sum(recall_list)/len(recall_list)))
+print("The average f1 score is "+str(sum(f1_list)/len(f1_list)))
 print("the average FPS is = "+str(int(sum(avrg_fps_all_videos)/len(avrg_fps_all_videos))))
